@@ -12,6 +12,7 @@ import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_en from "react-date-object/locales/gregorian_en";
 import { toast } from "react-toastify";
 import useSWR from "swr";
+import { apiAxiosApp } from "service/axios";
 
 const CreateProduct: React.FC = () => {
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
@@ -80,12 +81,12 @@ const CreateProduct: React.FC = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("/products/create", formData, {
+      const res = await apiAxiosApp.post("/products/create", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      toast.success("کاربر مورد نظر با موفقیت ایجاد شد");
+      toast.success("محصول جدید با موفقیت ایجاد شد");
     } catch (err) {
       toast.error(handleError(err));
     } finally {
@@ -161,7 +162,7 @@ const CreateProduct: React.FC = () => {
             multiple
             className="form-control"
           />
-          <div className="form-text text-danger">{errors.images?.message as any }</div>
+          <div className="form-text text-danger">{errors.images?.message as string }</div>
         </div>
         <div className="col-md-3">
           <label className="form-label">نام </label>
@@ -215,7 +216,7 @@ const CreateProduct: React.FC = () => {
             className="form-control"
           />
           <div className="form-text text-danger">{errors.price?.message as any }</div>
-        </div>
+        </div> 
         <div className="col-md-3">
           <label className="form-label">تعداد</label>
           <input

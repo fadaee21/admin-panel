@@ -1,5 +1,4 @@
 import { handleError } from "@/lib/helper";
-import axios from "axios";
 import { NextApiRequest, NextApiResponse } from "next";
 import apiAxiosDataBase from "service/axios";
 
