@@ -1,9 +1,8 @@
 import { handleError } from "@/lib/helper";
-import axios from "axios";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import DatePicker, { DateObject } from "react-multi-date-picker"; // Update with the correct import path
+import DatePicker, { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import TimePicker from "react-multi-date-picker/plugins/time_picker";
@@ -12,40 +11,52 @@ import gregorian from "react-date-object/calendars/gregorian";
 import gregorian_en from "react-date-object/locales/gregorian_en";
 import { toast } from "react-toastify";
 import useSWR from "swr";
+import { useRouter } from "next/router";
+import Loading from "@/components/Loading";
+import { Category, Product } from "type";
 import { apiAxiosApp } from "service/axios";
 
-const CreateProduct: React.FC = () => {
+const EditProduct = () => {
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateOnSale, setDateOnSale] = useState<any>([]);
+  const router = useRouter();
 
   const {
     register,
     handleSubmit,
     watch,
-    reset,
+    resetField,
     formState: { errors },
   } = useForm();
 
-  const { data: categories, error } = useSWR("/global?url=/categories-list");
+  const { data: product, error: productError } = useSWR<Product>(
+    router.query.id && `/global?url=/products/${router.query.id}`
+  );
+  const { data: categories, error: categoryError } = useSWR<Category[]>(
+    "/global?url=/categories-list"
+  );
 
   useEffect(() => {
-    if (error) {
-      toast.error(handleError(error));
+    if (product) {
+      setDateOnSale([product.date_on_sale_from, product.date_on_sale_to]);
     }
-  }, [error]);
+  }, [product]);
+
+  if (productError) {
+    toast.error(handleError(productError));
+  }
+  if (categoryError) {
+    toast.error(handleError(categoryError));
+  }
 
   const onSubmit = async (data: any) => {
     const formData = new FormData();
 
-    // Append the primary image to the form data
-    formData.append("primary_image", data.primary_image[0]);
-
-    // Append each image in the array to the form data
+    formData.append("primary_image", primaryImage ? data.primary_image[0] : "");
     for (let i = 0; i < data.images.length; i++) {
       formData.append("images", data.images[i]);
     }
-
     formData.append("name", data.name);
     formData.append("category_id", data.category_id);
     formData.append("status", data.status);
@@ -57,7 +68,6 @@ const CreateProduct: React.FC = () => {
     );
     formData.append("sale_price", data.sale_price);
     formData.append("description", data.description);
-
     // Check if the first element of dateOnSale is an instance of DateObject
     if (dateOnSale[0] instanceof DateObject) {
       // Convert the date to the gregorian calendar and format it as "YYYY-MM-DD HH:mm:ss"
@@ -67,6 +77,8 @@ const CreateProduct: React.FC = () => {
 
       // Append the formatted date to the formData object
       formData.append("date_on_sale_from", formattedDate);
+    } else {
+      formData.append("date_on_sale_from", "");
     }
 
     if (dateOnSale[1] instanceof DateObject) {
@@ -76,16 +88,18 @@ const CreateProduct: React.FC = () => {
           .convert(gregorian, gregorian_en)
           .format("YYYY-MM-DD HH:mm:ss")
       );
+    } else {
+      formData.append("date_on_sale_to", "");
     }
 
     try {
       setLoading(true);
-      const res = await apiAxiosApp.post("/products/create", formData, {
+      await apiAxiosApp.put(`/products/edit?id=${router.query.id}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      toast.success("محصول جدید با موفقیت ایجاد شد");
+      toast.success("محصول مورد نظر با موفقیت ویرایش شد");
     } catch (err) {
       toast.error(handleError(err));
     } finally {
@@ -93,21 +107,22 @@ const CreateProduct: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (watch("primary_image") && watch("primary_image").length > 0) {
-      const reader = new FileReader();
-      reader.readAsDataURL(watch("primary_image")[0]);
-      reader.onloadend = () => {
-        setPrimaryImage(reader.result!.toString());
-      };
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watch("primary_image")]);
+  if (watch("primary_image") && watch("primary_image").length > 0) {
+    const reader = new FileReader();
+    reader.readAsDataURL(watch("primary_image")[0]);
+    reader.onloadend = () => {
+      reader.result && setPrimaryImage(reader.result.toString());
+    };
+  }
+
+  if (!product) {
+    return <Loading />;
+  }
 
   return (
     <>
       <div className="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h4 className="fw-bold">ایجاد محصول</h4>
+        <h4 className="fw-bold">ویرایش محصول</h4>
       </div>
       <form onSubmit={handleSubmit(onSubmit)} className="row gy-4">
         <div className="col-md-12 mb-5">
@@ -118,7 +133,7 @@ const CreateProduct: React.FC = () => {
                 <div className="position-relative">
                   <Image
                     className="rounded"
-                    src={primaryImage as any}
+                    src={primaryImage}
                     width={350}
                     height={220}
                     alt="image"
@@ -126,7 +141,7 @@ const CreateProduct: React.FC = () => {
                   <div
                     className="position-absolute"
                     onClick={() => {
-                      reset({ primary_image: undefined });
+                      resetField("primary_image");
                       setPrimaryImage(null);
                     }}
                     style={{ top: "5px", right: "15px" }}
@@ -136,15 +151,20 @@ const CreateProduct: React.FC = () => {
                 </div>
               ) : (
                 <>
+                  <Image
+                    className="rounded mb-4"
+                    src={product.primary_image}
+                    width={350}
+                    height={220}
+                    alt="image"
+                  />
                   <input
-                    {...register("primary_image", {
-                      required: "فیلد تصویر اصلی الزامی است",
-                    })}
+                    {...register("primary_image")}
                     type="file"
                     className="form-control"
                   />
                   <div className="form-text text-danger">
-                    {errors.primary_image?.message as any}
+                    {errors.primary_image?.message as string}
                   </div>
                 </>
               )}
@@ -155,7 +175,7 @@ const CreateProduct: React.FC = () => {
         <div className="col-md-3">
           <label className="form-label">تصاویر</label>
           <input
-            {...register("images", { required: "فیلد تصاویر الزامی است" })}
+            {...register("images")}
             type="file"
             multiple
             className="form-control"
@@ -168,11 +188,12 @@ const CreateProduct: React.FC = () => {
           <label className="form-label">نام </label>
           <input
             {...register("name", { required: "فیلد نام الزامی است" })}
+            defaultValue={product.name}
             type="text"
             className="form-control"
           />
           <div className="form-text text-danger">
-            {errors.name?.message as any}
+            {errors.name?.message as string}
           </div>
         </div>
         <div className="col-md-3">
@@ -181,57 +202,59 @@ const CreateProduct: React.FC = () => {
             {...register("category_id", {
               required: "فیلد دسته بندی الزامی است",
             })}
-            defaultValue=""
+            defaultValue={product.category_id}
             className="form-control"
           >
             <option value="" disabled>
               انتخاب دسته بندی
             </option>
             {categories &&
-              categories.map((item: any) => (
+              categories.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
                 </option>
               ))}
           </select>
           <div className="form-text text-danger">
-            {errors.category_id?.message as any}
+            {errors.category_id?.message as string}
           </div>
         </div>
         <div className="col-md-3">
           <label className="form-label">وضعیت</label>
           <select
             {...register("status", { required: "فیلد وضعیت الزامی است" })}
-            defaultValue="1"
+            defaultValue={product.status_value}
             className="form-control"
           >
             <option value="1">فعال</option>
             <option value="0">غیر فعال</option>
           </select>
           <div className="form-text text-danger">
-            {errors.status?.message as any}
+            {errors.status?.message as string}
           </div>
         </div>
         <div className="col-md-3">
           <label className="form-label">قیمت</label>
           <input
             {...register("price", { required: "فیلد قیمت الزامی است" })}
+            defaultValue={product.price}
             type="text"
             className="form-control"
           />
           <div className="form-text text-danger">
-            {errors.price?.message as any}
+            {errors.price?.message as string}
           </div>
         </div>
         <div className="col-md-3">
           <label className="form-label">تعداد</label>
           <input
             {...register("quantity", { required: "فیلد تعداد الزامی است" })}
+            defaultValue={product.quantity}
             type="text"
             className="form-control"
           />
           <div className="form-text text-danger">
-            {errors.quantity?.message as any}
+            {errors.quantity?.message as string}
           </div>
         </div>
         <div className="col-md-3">
@@ -240,22 +263,24 @@ const CreateProduct: React.FC = () => {
             {...register("primary_image_blurDataURL", {
               required: "فیلد blurDataURL الزامی است",
             })}
+            defaultValue={product.primary_image_blurDataURL}
             type="text"
             className="form-control"
           />
           <div className="form-text text-danger">
-            {errors.primary_image_blurDataURL?.message as any}
+            {errors.primary_image_blurDataURL?.message as string}
           </div>
         </div>
         <div className="col-md-3">
           <label className="form-label">قیمت حراجی</label>
           <input
             {...register("sale_price")}
+            defaultValue={product.sale_price}
             type="text"
             className="form-control"
           />
           <div className="form-text text-danger">
-            {errors.sale_price?.message as any}
+            {errors.sale_price?.message as string}
           </div>
         </div>
         <div className="col-md-4">
@@ -281,10 +306,11 @@ const CreateProduct: React.FC = () => {
             {...register("description", {
               required: "فیلد توضیحات الزامی است",
             })}
+            defaultValue={product.description}
             className="form-control"
           ></textarea>
           <div className="form-text text-danger">
-            {errors.description?.message as any}
+            {errors.description?.message as string}
           </div>
         </div>
 
@@ -294,7 +320,7 @@ const CreateProduct: React.FC = () => {
             disabled={loading}
             className="btn btn-outline-dark mt-3 mb-5"
           >
-            ایجاد محصول
+            ویرایش محصول
             {loading && (
               <div className="spinner-border spinner-border-sm ms-2"></div>
             )}
@@ -305,4 +331,4 @@ const CreateProduct: React.FC = () => {
   );
 };
 
-export default CreateProduct;
+export default EditProduct;

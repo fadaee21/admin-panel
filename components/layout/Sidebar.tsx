@@ -1,6 +1,37 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
 
+const navigation = [
+  {
+    name: "داشبورد",
+    href: "/",
+  },
+  {
+    name: "کاربران",
+    href: "/users",
+  },
+  {
+    name: "محصولات",
+    href: "/products",
+  },
+  {
+    name: "دسته بندی",
+    href: "/categories",
+  },
+  {
+    name: "سفارشات",
+    href: "/orders",
+  },
+  {
+    name: "تراکنش ها",
+    href: "/transactions",
+  },
+  {
+    name: "تخفیف ها",
+    href: "/coupons",
+  },
+];
+
 const Sidebar = () => {
   const router = useRouter();
 
@@ -11,59 +42,19 @@ const Sidebar = () => {
     >
       <div className="position-sticky pt-3">
         <ul className="nav flex-column">
-          <li className="nav-item">
-            <Link
-              href="/"
-              className={
-                router.pathname == "/" ? "nav-link active" : "nav-link"
-              }
-              aria-current="page"
-            >
-              <i className="bi bi-grid me-2"></i>
-              داشبورد
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link
-              href="/users"
-              className={
-                router.pathname.includes("/users") ? "nav-link active" : "nav-link"
-              }
-            >
-              <i className="bi bi-people me-2"></i>
-              کاربران
-            </Link>
-          </li>
-          <li className="nav-item">
-            <Link href="/products" className="nav-link">
-              <i className="bi bi-box-seam me-2"></i>
-              محصولات
-            </Link>
-          </li>
-          <li className="nav-item">
-            <a className="nav-link" href="#">
-              <i className="bi bi-grid-3x3-gap me-2"></i>
-              دسته بندی
-            </a>
-          </li>
-          <li className="nav-item">
-            <a className="nav-link" href="#">
-              <i className="bi bi-basket me-2"></i>
-              سفارشات
-            </a>
-          </li>
-          <li className="nav-item">
-            <a className="nav-link" href="#">
-              <i className="bi bi-currency-dollar me-2"></i>
-              تراکنش ها
-            </a>
-          </li>
-          <li className="nav-item">
-            <a className="nav-link" href="#">
-              <i className="bi bi-percent me-2"></i>
-              تخفیف ها
-            </a>
-          </li>
+          {navigation.map((item) => (
+            <li className="nav-item" key={item.href}>
+              <Link
+                href={item.href}
+                className={
+                  router.pathname == item.href ? "nav-link active" : "nav-link"
+                }
+              >
+                <i className="bi bi-grid me-2"></i>
+                {item.name}
+              </Link>
+            </li>
+          ))}
         </ul>
       </div>
     </nav>

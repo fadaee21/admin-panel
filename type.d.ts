@@ -101,3 +101,64 @@ export interface ProductRoot {
   links: Links;
   meta: Meta;
 }
+
+export interface Category {
+  id: number;
+  parent_id: number;
+  name: string;
+  description?: string;
+}
+
+interface OrderItem {
+  id: number;
+  product_primary_image: string;
+  product_name: string;
+  price: number;
+  quantity: number;
+  subtotal: number;
+}
+
+interface Order {
+  id: number;
+  address_title: string;
+  status: string;
+  payment_status: string;
+  paying_amount: number;
+  created_at: string;
+  order_items: OrderItem[];
+}
+
+interface OrderRoot {
+  orders: Order[];
+  links: Links;
+  meta: Meta;
+}
+
+interface Transaction {
+  id: number;
+  order_id: number;
+  amount: number;
+  status: string;
+  trans_id: string | null;
+  created_at: string;
+}
+
+interface TransactionRoot {
+  transactions: Transaction[];
+  links: Links;
+  meta: Meta;
+}
+
+interface Coupon {
+  id: number;
+  code: string;
+  percentage: number;
+  expired_at: string;
+  created_at: string;
+}
+
+interface CouponRoot {
+  coupons: Coupon[];
+  links: Links;
+  meta: Meta;
+}

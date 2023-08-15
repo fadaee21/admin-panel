@@ -20,24 +20,27 @@ export default async function handler(
     return;
   }
 
-  if (req.method === "POST") {
+  if (req.method === "PUT") {
     const form = formidable({ multiples: true });
 
     form.parse(req, async (err, fields, files) => {
-      // console.log("fields:", fields, "files:", files);
-
       var formData = new FormData();
 
-      for (let i = 0; i < files.images.length; i++) {
+      if (files.images) {
+        for (let i = 0; i < files.images.length; i++) {
+          formData.append(
+            "images[]",
+            fs.createReadStream(files.images[i].filepath)
+          );
+        }
+      }
+      if (files.primary_image) {
         formData.append(
-          "images[]",
-          fs.createReadStream(files.images[i].filepath)
+          "primary_image",
+          fs.createReadStream(files.primary_image[0].filepath)
         );
       }
-      formData.append(
-        "primary_image",
-        fs.createReadStream(files.primary_image[0].filepath)
-      );
+
       formData.append("name", fields.name[0]);
       formData.append("category_id", fields.category_id[0]);
       formData.append("status", fields.status[0]);
@@ -48,13 +51,19 @@ export default async function handler(
         fields.primary_image_blurDataURL[0]
       );
       formData.append("sale_price", fields.sale_price[0]);
-      formData.append("date_on_sale_from", fields.date_on_sale_from[0]);
-      formData.append("date_on_sale_to", fields.date_on_sale_to[0]);
+      formData.append(
+        "date_on_sale_from",
+        fields.date_on_sale_from.length > 0 && fields.date_on_sale_from[0]
+      );
+      formData.append(
+        "date_on_sale_to",
+        fields.date_on_sale_to.length > 0 && fields.date_on_sale_to[0]
+      );
       formData.append("description", fields.description[0]);
-
+      formData.append("_method", "PUT");
       try {
         const resApi = await axios.post(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/products`,
+          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/products/${req.query.id}`,
           formData,
           {
             headers: {
@@ -74,7 +83,7 @@ export default async function handler(
       }
     });
   } else {
-    res.setHeader("Allow", ["POST"]);
+    res.setHeader("Allow", ["[PUT]"]);
     res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
 }
